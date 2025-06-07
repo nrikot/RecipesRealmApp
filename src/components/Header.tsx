@@ -1,11 +1,25 @@
 
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, User, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Navigation } from "@/components/Navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Header = () => {
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <header className="bg-white shadow-sm border-b border-orange-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,23 +49,43 @@ export const Header = () => {
             <Button variant="ghost" size="icon" className="text-gray-600 hover:text-orange-500">
               <Bell className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-orange-500">
-              <User className="w-5 h-5" />
-            </Button>
-            
-            {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex items-center space-x-2">
-              <Link to="/signin">
-                <Button variant="ghost" className="text-gray-600 hover:text-orange-500">
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/signup">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                  Sign Up
-                </Button>
-              </Link>
-            </div>
+
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-gray-600 hover:text-orange-500">
+                    <User className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              /* Desktop Auth Buttons */
+              <div className="hidden md:flex items-center space-x-2">
+                <Link to="/signin">
+                  <Button variant="ghost" className="text-gray-600 hover:text-orange-500">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            )}
 
             <Navigation />
           </div>

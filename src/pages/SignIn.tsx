@@ -1,11 +1,13 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,11 +15,64 @@ const SignIn = () => {
     email: "",
     password: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { signIn, signInWithGoogle, signInWithGithub, user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Sign in:", formData);
-    // TODO: Implement authentication
+    setIsLoading(true);
+    
+    const { error } = await signIn(formData.email, formData.password);
+    
+    if (error) {
+      toast({
+        title: "Sign in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Welcome back!",
+        description: "You've been signed in successfully.",
+      });
+      navigate('/');
+    }
+    
+    setIsLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    const { error } = await signInWithGoogle();
+    
+    if (error) {
+      toast({
+        title: "Google sign in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGithubSignIn = async () => {
+    const { error } = await signInWithGithub();
+    
+    if (error) {
+      toast({
+        title: "GitHub sign in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -72,18 +127,41 @@ const SignIn = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <Link to="/forgot-password" className="text-sm text-orange-500 hover:text-orange-600">
-                Forgot password?
-              </Link>
-            </div>
-
             <Button 
               type="submit" 
               className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+              disabled={isLoading}
             >
-              Sign In
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleGoogleSignIn}
+                className="w-full"
+              >
+                Google
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleGithubSignIn}
+                className="w-full"
+              >
+                GitHub
+              </Button>
+            </div>
 
             <div className="text-center">
               <span className="text-sm text-gray-600">

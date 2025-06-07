@@ -1,12 +1,14 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,15 +20,82 @@ const SignUp = () => {
     confirmPassword: "",
     agreeToTerms: false,
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { signUp, signInWithGoogle, signInWithGithub, user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!");
+      toast({
+        title: "Password mismatch",
+        description: "Passwords don't match!",
+        variant: "destructive",
+      });
       return;
     }
-    console.log("Sign up:", formData);
-    // TODO: Implement authentication
+
+    if (!formData.agreeToTerms) {
+      toast({
+        title: "Terms required",
+        description: "Please agree to the terms of service to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    const { error } = await signUp(formData.email, formData.password, formData.name);
+    
+    if (error) {
+      toast({
+        title: "Sign up failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Account created!",
+        description: "Please check your email to verify your account.",
+      });
+    }
+    
+    setIsLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    const { error } = await signInWithGoogle();
+    
+    if (error) {
+      toast({
+        title: "Google sign up failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGithubSignIn = async () => {
+    const { error } = await signInWithGithub();
+    
+    if (error) {
+      toast({
+        title: "GitHub sign up failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -129,24 +198,45 @@ const SignUp = () => {
                 }
               />
               <Label htmlFor="terms" className="text-sm">
-                I agree to the{" "}
-                <Link to="/terms" className="text-orange-500 hover:text-orange-600">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link to="/privacy" className="text-orange-500 hover:text-orange-600">
-                  Privacy Policy
-                </Link>
+                I agree to the Terms of Service and Privacy Policy
               </Label>
             </div>
 
             <Button 
               type="submit" 
               className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={!formData.agreeToTerms}
+              disabled={!formData.agreeToTerms || isLoading}
             >
-              Create Account
+              {isLoading ? "Creating account..." : "Create Account"}
             </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleGoogleSignIn}
+                className="w-full"
+              >
+                Google
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleGithubSignIn}
+                className="w-full"
+              >
+                GitHub
+              </Button>
+            </div>
 
             <div className="text-center">
               <span className="text-sm text-gray-600">
