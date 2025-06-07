@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, X, Clock, ChefHat } from "lucide-react";
+import { ArrowLeft, Plus, X, Clock, ChefHat, Upload, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +23,7 @@ const EditRecipe = () => {
 
   const [ingredients, setIngredients] = useState([{ name: "", amount: "" }]);
   const [instructions, setInstructions] = useState([{ text: "", image: null as File | null }]);
+  const [images, setImages] = useState<{ file: File | null; preview: string | null; id: string }[]>([]);
   const [newTag, setNewTag] = useState("");
 
   // Mock data loading - in a real app, this would fetch from API
@@ -49,10 +49,44 @@ const EditRecipe = () => {
       { text: "Heat oil in a wok over medium-high heat", image: null },
     ];
 
+    // Mock existing images
+    const mockImages = [
+      { file: null, preview: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=300&h=200&fit=crop", id: "1" },
+      { file: null, preview: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&h=200&fit=crop", id: "2" },
+    ];
+
     setFormData(mockRecipe);
     setIngredients(mockIngredients);
     setInstructions(mockInstructions);
+    setImages(mockImages);
   }, [id]);
+
+  const addImage = () => {
+    const newImage = {
+      file: null,
+      preview: null,
+      id: Date.now().toString()
+    };
+    setImages([...images, newImage]);
+  };
+
+  const removeImage = (imageId: string) => {
+    setImages(images.filter(img => img.id !== imageId));
+  };
+
+  const handleImageUpload = (imageId: string, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImages(prevImages => 
+        prevImages.map(img => 
+          img.id === imageId 
+            ? { ...img, file, preview: e.target?.result as string }
+            : img
+        )
+      );
+    };
+    reader.readAsDataURL(file);
+  };
 
   const addIngredient = () => {
     setIngredients([...ingredients, { name: "", amount: "" }]);
@@ -89,7 +123,7 @@ const EditRecipe = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Updated recipe data:", { formData, ingredients, instructions });
+    console.log("Updated recipe data:", { formData, ingredients, instructions, images });
     // TODO: Implement recipe updating
   };
 
@@ -189,6 +223,74 @@ const EditRecipe = () => {
                   onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Recipe Images */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recipe Images</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {images.map((image) => (
+                  <div key={image.id} className="relative border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    {image.preview ? (
+                      <div className="relative">
+                        <img
+                          src={image.preview}
+                          alt="Recipe"
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 bg-white bg-opacity-80 hover:bg-opacity-100"
+                          onClick={() => removeImage(image.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-32">
+                        <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                        <Label
+                          htmlFor={`image-${image.id}`}
+                          className="cursor-pointer text-sm text-gray-600 hover:text-gray-800"
+                        >
+                          Upload Image
+                        </Label>
+                        <Input
+                          id={`image-${image.id}`}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleImageUpload(image.id, file);
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={() => removeImage(image.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="outline" onClick={addImage}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Image
+              </Button>
             </CardContent>
           </Card>
 
